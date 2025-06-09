@@ -250,7 +250,7 @@ int RpmVer::cmp_impl(const RpmVer& other) {
                 return -1;
             }
         } else if (!lhsIsNumber && !rhsIsNumber) { // compare as alphabetic
-            if (lhsSegments.at(i).compare(rhsSegments.at(i)) != 0) {
+            if (lhsSegments.at(i) != rhsSegments.at(i)) {
                 if (lhsSegments.at(i).compare(rhsSegments.at(i)) < 0) {
                     return -1;
                 } else {
