@@ -295,7 +295,7 @@ const std::string RpmEvr::isValid(const std::string& evr) {
     }
 
     if (utils::contains(evr, ":")) {
-        if (std::stoi(evr.substr(0, evr.find(":"))) < 0) {
+        if (std::stoi(evr.substr(0, evr.find(':'))) < 0) {
             return "Epoch must be a positive number!";
         }
     }
@@ -375,16 +375,16 @@ int RpmEvr::cmp_impl(const RpmEvr& other) {
 
 void RpmEvr::parseEvr(const std::string& evr) {
     if (utils::contains(evr, ":")) {
-        m_epoch = std::stoul(evr.substr(0, evr.find(":")));
+        m_epoch = std::stoul(evr.substr(0, evr.find(':')));
     }
 
     if (utils::contains(evr, "-")) {
-        size_t versionStart = (evr.find(":") == evr.npos) ? 0 : evr.find(":") + 1;
-        size_t versionSize = evr.find("-") - versionStart;
+        size_t versionStart = (evr.find(':') == evr.npos) ? 0 : evr.find(':') + 1;
+        size_t versionSize = evr.find('-') - versionStart;
         m_version = evr.substr(versionStart, versionSize);
-        m_release = evr.substr(evr.find("-")+1, evr.size());
+        m_release = evr.substr(evr.find('-')+1, evr.size());
     } else if (utils::contains(evr, ":")) {
-        m_version = evr.substr(evr.find(":")+1, evr.size());
+        m_version = evr.substr(evr.find(':')+1, evr.size());
     } else {
         m_version = evr;
     }
