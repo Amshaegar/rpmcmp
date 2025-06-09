@@ -3,8 +3,10 @@
 #pragma once
 
 #include <algorithm>
+#include <charconv>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace rpmcmplib {
@@ -51,7 +53,7 @@ public:
     /**
      * Split label into segments.
      */
-    static const std::vector<std::string> segments(const std::string& label);
+    static const std::vector<std::string_view> segments(std::string_view label);
     
     std::string version() const;
     
@@ -150,24 +152,24 @@ int RpmVer::cmp(const std::string& lhs, const std::string& rhs) {
     return 1;
 }
 
-const std::vector<std::string> RpmVer::segments(const std::string& label) {
-    std::vector<std::string> segmentsVector;
-    std::string segment;
+const std::vector<std::string_view> RpmVer::segments(std::string_view label) {
+    std::vector<std::string_view> segmentsVector;
+    std::string_view segment;
     for(size_t i = 0; i < label.size(); ++i) {
         if ( std::isdigit(label.at(i)) || std::isalpha(label.at(i)) ) {
             if (segment.empty()) {
-                segment += label.at(i);
+                segment = label.substr(i, 1);
             } else if ( (std::isdigit(label.at(i)) && std::isdigit(segment.back())) ||
                         (std::isalpha(label.at(i)) && std::isalpha(segment.back())) ) {
-                segment += label.at(i);
+                segment = {segment.data(), segment.size() + 1};
             } else {
                 segmentsVector.push_back(segment);
-                segment = label.at(i);
+                segment = label.substr(i, 1);
             }
         } else {
             if (!segment.empty()) {
                 segmentsVector.push_back(segment);
-                segment.clear();
+                segment = {"", 0};
             }
         }
     }
@@ -219,8 +221,8 @@ int RpmVer::cmp_impl(const RpmVer& other) {
     }
 
     // split into segments
-    auto lhsSegments = segments(version());
-    auto rhsSegments = segments(other.version());
+    auto lhsSegments = segments({version().c_str(), version().size()});
+    auto rhsSegments = segments({other.version().c_str(), other.version().size()});
 
     // compare segments
     size_t length = std::min(lhsSegments.size(), rhsSegments.size());
@@ -229,20 +231,21 @@ int RpmVer::cmp_impl(const RpmVer& other) {
         long long int rhsNumber = 0;
         bool lhsIsNumber = true;
         bool rhsIsNumber = true;
-        try {
-            lhsNumber = std::stoll(lhsSegments.at(i));
-        }
-        catch(std::invalid_argument const&) {
+
+        auto [lhsPtr, lhsEc] = std::from_chars(lhsSegments.at(i).data(),
+                                               lhsSegments.at(i).data() + lhsSegments.at(i).size(),
+                                               lhsNumber);
+        if (lhsEc != std::errc()) {
             lhsIsNumber = false;
         }
 
-        try {
-            rhsNumber = std::stoll(rhsSegments.at(i));
-        }
-        catch(std::invalid_argument const&) {
+        auto [rhsPtr, rhsEc] = std::from_chars(rhsSegments.at(i).data(),
+                                               rhsSegments.at(i).data() + rhsSegments.at(i).size(),
+                                               rhsNumber);
+        if (rhsEc != std::errc()) {
             rhsIsNumber = false;
         }
-        
+
         if (lhsIsNumber && rhsIsNumber) { // compare as numeric
             if (lhsNumber > rhsNumber) {
                 return 1;
