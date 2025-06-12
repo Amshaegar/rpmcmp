@@ -81,7 +81,43 @@ Please note that the algorithm's actions is undefined in some cases, in a ways m
 There is  note in [Fedora Versioning Guidelines](https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/): `Note that 0.4.1^<something> sorts higher than 0.4.1, but lower than both 0.4.2 and 0.4.1.<anything>.` I don't understand why `0.4.1^<something>` < `0.4.1.<anything>`, so it's not supported in the library.
 
 # Library usage examples
-For library usage examples please see tests.
+C++ style.  
+Make objects and compare them:
+```cpp
+auto versionA = rpmcmplib::RpmEvr("3.0.0.fc");
+auto versionB = rpmcmplib::RpmEvr("3.0.0_fc");
+bool result = versionA == versionB;
+```
+or just:
+```cpp
+bool result = rpmcmplib::RpmEvr("3.0.0.fc") == rpmcmplib::RpmEvr("3.0.0_fc");
+```
+
+C style.  
+If for some reason you have to or want to use this library similar to rpmvercmp/rpmevrcmp function from rpmlib, then you can use it in a such way:
+```cpp
+int result2 = rpmcmplib::RpmVer::cmp("0.5.0.1", "0.5.0.post1");
+int result1 = rpmcmplib::RpmEvr::cmp("0.5.0.post1", "0.5.0.1");
+```
+**! But beware** that current library is checking input values for validity and in case of invalid values will throw an exception. To prevent this - check values for validity by yourself before comparison:
+```cpp
+std::string versionA = "0.5.0.post1";
+std::string versionB = "0.5.0.1";
+
+std::string isVersionValid = rpmcmplib::RpmVer::isValid(versionA);
+if (!isVersionValid.empty()) {
+    // handle error: reason of invalidity is in isVersionValid
+}
+
+isVersionValid = rpmcmplib::RpmVer::isValid(versionB);
+if (!isVersionValid.empty()) {
+    // handle error: reason of invalidity is in isVersionValid
+}
+
+int result = rpmcmplib::RpmVer::cmp(versionA, versionB);
+```
+
+For more examples of library usage see tests.
 
 # Plans and TODOs
 1. Add this library to the Conan and vcpkg.

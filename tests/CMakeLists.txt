@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required (VERSION 3.11)
+cmake_minimum_required (VERSION 3.15)
 
 project(rpmcmp_tests CXX)
 
@@ -24,6 +24,7 @@ target_include_directories(
 )
 
 target_link_libraries(rpmcmp_tests PRIVATE gtest)
+target_link_libraries(rpmcmp_tests PUBLIC rpmcmp)
 target_compile_features(rpmcmp_tests PUBLIC cxx_std_17)
 
 if (MSVC)

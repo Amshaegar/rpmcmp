@@ -60,10 +60,10 @@ TEST(RpmCmp, VersionReleaseCantHaveHyphenSymbolComparison) {
 TEST(RpmCmp, RpmVerSegments) {
     // Arrange
     std::string version = "1.002.3.abc.001ab.dd100";
-    std::vector<std::string> expectedSegments = {"1","002","3","abc","001","ab", "dd", "100"};
+    std::vector<std::string_view> expectedSegments = {"1","002","3","abc","001","ab", "dd", "100"};
 
     // Act
-    std::vector<std::string> actualSegments = rpmcmplib::RpmVer::segments(version);
+    std::vector<std::string_view> actualSegments = rpmcmplib::RpmVer::segments({version.c_str(), version.size()});
 
     // Assert
     EXPECT_EQ(expectedSegments, actualSegments);

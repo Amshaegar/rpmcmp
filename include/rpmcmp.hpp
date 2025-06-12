@@ -3,8 +3,10 @@
 #pragma once
 
 #include <algorithm>
+#include <charconv>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace rpmcmplib {
@@ -51,7 +53,7 @@ public:
     /**
      * Split label into segments.
      */
-    static const std::vector<std::string> segments(const std::string& label);
+    static const std::vector<std::string_view> segments(std::string_view label);
     
     std::string version() const;
     
@@ -150,24 +152,24 @@ int RpmVer::cmp(const std::string& lhs, const std::string& rhs) {
     return 1;
 }
 
-const std::vector<std::string> RpmVer::segments(const std::string& label) {
-    std::vector<std::string> segmentsVector;
-    std::string segment;
+const std::vector<std::string_view> RpmVer::segments(std::string_view label) {
+    std::vector<std::string_view> segmentsVector;
+    std::string_view segment;
     for(size_t i = 0; i < label.size(); ++i) {
         if ( std::isdigit(label.at(i)) || std::isalpha(label.at(i)) ) {
             if (segment.empty()) {
-                segment += label.at(i);
+                segment = label.substr(i, 1);
             } else if ( (std::isdigit(label.at(i)) && std::isdigit(segment.back())) ||
                         (std::isalpha(label.at(i)) && std::isalpha(segment.back())) ) {
-                segment += label.at(i);
+                segment = {segment.data(), segment.size() + 1};
             } else {
                 segmentsVector.push_back(segment);
-                segment = label.at(i);
+                segment = label.substr(i, 1);
             }
         } else {
             if (!segment.empty()) {
                 segmentsVector.push_back(segment);
-                segment.clear();
+                segment = {"", 0};
             }
         }
     }
@@ -219,8 +221,8 @@ int RpmVer::cmp_impl(const RpmVer& other) {
     }
 
     // split into segments
-    auto lhsSegments = segments(version());
-    auto rhsSegments = segments(other.version());
+    auto lhsSegments = segments({version().c_str(), version().size()});
+    auto rhsSegments = segments({other.version().c_str(), other.version().size()});
 
     // compare segments
     size_t length = std::min(lhsSegments.size(), rhsSegments.size());
@@ -229,20 +231,21 @@ int RpmVer::cmp_impl(const RpmVer& other) {
         long long int rhsNumber = 0;
         bool lhsIsNumber = true;
         bool rhsIsNumber = true;
-        try {
-            lhsNumber = std::stoll(lhsSegments.at(i));
-        }
-        catch(std::invalid_argument const&) {
+
+        auto [lhsPtr, lhsEc] = std::from_chars(lhsSegments.at(i).data(),
+                                               lhsSegments.at(i).data() + lhsSegments.at(i).size(),
+                                               lhsNumber);
+        if (lhsEc != std::errc()) {
             lhsIsNumber = false;
         }
 
-        try {
-            rhsNumber = std::stoll(rhsSegments.at(i));
-        }
-        catch(std::invalid_argument const&) {
+        auto [rhsPtr, rhsEc] = std::from_chars(rhsSegments.at(i).data(),
+                                               rhsSegments.at(i).data() + rhsSegments.at(i).size(),
+                                               rhsNumber);
+        if (rhsEc != std::errc()) {
             rhsIsNumber = false;
         }
-        
+
         if (lhsIsNumber && rhsIsNumber) { // compare as numeric
             if (lhsNumber > rhsNumber) {
                 return 1;
@@ -250,7 +253,7 @@ int RpmVer::cmp_impl(const RpmVer& other) {
                 return -1;
             }
         } else if (!lhsIsNumber && !rhsIsNumber) { // compare as alphabetic
-            if (lhsSegments.at(i).compare(rhsSegments.at(i)) != 0) {
+            if (lhsSegments.at(i) != rhsSegments.at(i)) {
                 if (lhsSegments.at(i).compare(rhsSegments.at(i)) < 0) {
                     return -1;
                 } else {
@@ -292,7 +295,7 @@ const std::string RpmEvr::isValid(const std::string& evr) {
     }
 
     if (utils::contains(evr, ":")) {
-        if (std::stoi(evr.substr(0, evr.find(":"))) < 0) {
+        if (std::stoi(evr.substr(0, evr.find(':'))) < 0) {
             return "Epoch must be a positive number!";
         }
     }
@@ -372,16 +375,16 @@ int RpmEvr::cmp_impl(const RpmEvr& other) {
 
 void RpmEvr::parseEvr(const std::string& evr) {
     if (utils::contains(evr, ":")) {
-        m_epoch = std::stoul(evr.substr(0, evr.find(":")));
+        m_epoch = std::stoul(evr.substr(0, evr.find(':')));
     }
 
     if (utils::contains(evr, "-")) {
-        size_t versionStart = (evr.find(":") == evr.npos) ? 0 : evr.find(":") + 1;
-        size_t versionSize = evr.find("-") - versionStart;
+        size_t versionStart = (evr.find(':') == evr.npos) ? 0 : evr.find(':') + 1;
+        size_t versionSize = evr.find('-') - versionStart;
         m_version = evr.substr(versionStart, versionSize);
-        m_release = evr.substr(evr.find("-")+1, evr.size());
+        m_release = evr.substr(evr.find('-')+1, evr.size());
     } else if (utils::contains(evr, ":")) {
-        m_version = evr.substr(evr.find(":")+1, evr.size());
+        m_version = evr.substr(evr.find(':')+1, evr.size());
     } else {
         m_version = evr;
     }
