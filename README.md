@@ -28,7 +28,7 @@ It's not a guide how to make and set version of your package (for this informati
 
 rpmevrcmp stands for RPM EVR Compare
 
-rpmevrcmp stands for RPM Version/Release Compare
+rpmvercmp stands for RPM Version/Release Compare
 
 ## rpmevrcmp algorithm
 
